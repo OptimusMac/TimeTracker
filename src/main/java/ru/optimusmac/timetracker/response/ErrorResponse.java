@@ -1,4 +1,4 @@
-package ru.optimusmac.response;
+package ru.optimusmac.TimeTracker.response;
 
 public class ErrorResponse {
   private String message;
