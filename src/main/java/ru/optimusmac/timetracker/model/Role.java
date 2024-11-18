@@ -1,4 +1,4 @@
-package ru.optimusmac.TimeTracker.model;
+package ru.optimusmac.timetracker.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,8 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
-import org.springframework.security.core.GrantedAuthority;
-import ru.optimusmac.TimeTracker.utils.Validate;
+import ru.optimusmac.timetracker.utils.Validate;
 
 
 @Data

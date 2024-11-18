@@ -1,12 +1,12 @@
-package ru.optimusmac.TimeTracker.service;
+package ru.optimusmac.timetracker.service;
 
 import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.optimusmac.TimeTracker.model.WorkSession;
-import ru.optimusmac.TimeTracker.repository.TrackerRepository;
+import ru.optimusmac.timetracker.model.WorkSession;
+import ru.optimusmac.timetracker.repository.TrackerRepository;
 
 @Service
 @AllArgsConstructor

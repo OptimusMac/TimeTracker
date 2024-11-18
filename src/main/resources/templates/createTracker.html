@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Создание трекера</title>
+  <link rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f7fa;
+    }
+    .header {
+        background-color: #007bff;
+        color: white;
+        padding: 15px 30px;
+    }
+    .header img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+    .header .user-info {
+        display: flex;
+        align-items: center;
+    }
+    .header .user-info h4 {
+        margin-left: 15px;
+        margin-bottom: 0;
+    }
+    .container {
+        margin-top: 30px;
+    }
+    .card {
+        margin-bottom: 20px;
+    }
+    .card-header {
+        background-color: #007bff;
+        color: white;
+    }
+    .card-body {
+        background-color: #ffffff;
+    }
+    .btn-custom {
+        background-color: #28a745;
+        color: white;
+        border-radius: 5px;
+    }
+    .btn-custom:hover {
+        background-color: #218838;
+    }
+      #buttonHeader {
+    font-size: 20px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  }
+
+  #buttonHeader:hover {
+    cursor: pointer;
+    transform: scale(1.1) rotate(10deg); /* Увеличение и вращение */
+    border: 3px dotted #3a7999;
+    color: #fff; /* Белый цвет текста */
+    background: #38d9a9; /* Цвет фона при наведении */
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2); /* Тень, чтобы выделить кнопку */
+    transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #buttonHeader {
+    position: relative;
+  }
+
+  #buttonHeader:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+    z-index: -1;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  #buttonHeader:hover:before {
+    opacity: 1;
+  }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header d-flex justify-content-between align-items-center">
+  <div class="user-info d-flex align-items-center">
+    <!-- User Image -->
+    <img id="userPhoto" src="https://www.example.com/user-photo.jpg" alt="User Photo">
+    <h4 th:text="${identifier}" id="buttonHeader" onclick="redirectToProfile()">User Email</h4>
+  </div>
+  <a href="/logout" class="btn btn-danger">Выход</a>
+</div>
+
+<!-- Main Body -->
+<div class="container">
+  <div class="row">
+    <!-- Create Tracker Form Section -->
+    <div class="col-md-6 offset-md-3">
+      <div class="card">
+        <div class="card-header">
+          <h5>Создать новый трекер</h5>
+        </div>
+        <div class="card-body">
+          <form id="createTrackerForm">
+            <div class="form-group">
+              <label for="name">Название:</label>
+              <input type="text" id="name" class="form-control" required />
+            </div>
+
+            <div class="form-group">
+              <label for="description">Описание:</label>
+              <input type="text" id="description" class="form-control" required />
+            </div>
+
+            <button type="submit" class="btn btn-custom">Создать</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Optional: Bootstrap JS for better interaction -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+
+  window.onload = () => {
+    loadUserProfilePhoto();
+};
+
+
+document.getElementById('createTrackerForm').addEventListener('submit', function(event) {
+  event.preventDefault(); // Prevent the default form submission
+
+  // Get the values from the form fields
+  const name = document.getElementById('name').value;
+  const description = document.getElementById('description').value;
+
+  // Create the JSON object
+  const data = {
+    name: name,
+    description: description
+  };
+
+  // Send the data as JSON using fetch
+  fetch('/tracker/session/create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    window.location.href = "/home"
+    console.log(data);
+  })
+  .catch(error => {
+    // Handle errors here
+    alert('Error creating tracker');
+    console.error('Error:', error);
+  });
+});
+
+function redirectToProfile() {
+    const email = document.getElementById('buttonHeader').innerText; // Получаем текст (email)
+    const url = `/home`; // Создаем URL с параметром email
+    window.location.href = url; // Перенаправляем
+}
+
+function loadUserProfilePhoto() {
+  const userId = [[${id}]];  // Замените на реальный ID пользователя (например, через session или JWT)
+ fetch(`/profile/get-profile-photo/${userId}`)
+      .then(response => response.blob())  // Используем .blob() для получения изображения
+      .then(imageBlob => {
+          const userPhoto = document.getElementById("userPhoto");
+          const imageUrl = URL.createObjectURL(imageBlob); // Создаем URL для blob-данных
+          userPhoto.src = imageUrl;  // Обновляем src изображения
+      })
+      .catch(error => console.error("Error loading user photo:", error));
+}
+</script>
+
+</body>
+</html>

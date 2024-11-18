@@ -1,8 +1,9 @@
-package ru.optimusmac.TimeTracker.model;
+package ru.optimusmac.timetracker.model;
 
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -11,10 +12,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
@@ -28,8 +30,10 @@ public class User {
 
   @Column(unique = true)
   private String email;
-
+  private String nickname;
   private String password;
+  private String image;
+  private LocalDateTime register;
 
 
   @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
@@ -39,4 +43,8 @@ public class User {
       inverseJoinColumns = @JoinColumn(name = "role_id")
   )
   private Set<Role> roles = new HashSet<>();
+
+  @ManyToMany(fetch = FetchType.EAGER)
+  private Set<WorkSession> activeSessions = new HashSet<>();
+
 }

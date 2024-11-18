@@ -1,10 +1,348 @@
 <!DOCTYPE html>
 <html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title>$Title$</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ваши трекеры</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f7fa;
+    }
+    .header {
+        background-color: #007bff;
+        color: white;
+        padding: 15px 30px;
+    }
+    .header img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+    .header .user-info {
+        display: flex;
+        align-items: center;
+    }
+    .header .user-info h4 {
+        margin-left: 15px;
+        margin-bottom: 0;
+    }
+    .container {
+        margin-top: 30px;
+    }
+    .card {
+        margin-bottom: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .card-header {
+        background-color: #007bff;
+        color: white;
+        padding: 10px;
+    }
+    .card-body {
+        padding: 20px;
+    }
+    .card-footer {
+        background-color: #fff0000;
+        padding: 10px;
+        text-align: center;
+    }
+    .status-message {
+        font-size: 14px;
+        margin-top: 10px;
+    }
+    .details-table {
+        width: 100%;
+        margin-top: 10px;
+    }
+    .details-table th, .details-table td {
+        text-align: left;
+        padding: 5px 10px;
+    }
+    .details-table th {
+        color: #555;
+    }
+    .status-indicator {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .status-waiting {
+        background-color: #ffc107;
+        color: #fff;
+    }
+    .status-in-progress {
+        background-color: #28a745;
+        color: #fff;
+    }
+    .status-completed {
+        background-color: #007bff;
+        color: #fff;
+    }
+  </style>
 </head>
 <body>
-$END$
+<!-- Header -->
+<div class="header d-flex justify-content-between align-items-center">
+  <div class="user-info d-flex align-items-center">
+    <img id="userPhoto" src="https://via.placeholder.com/50" alt="User Photo">
+    <h4 th:text="${identifier}" id="buttonHeader" onclick="redirectToProfile()">User Email</h4>
+
+  </div>
+
+  <a href="/logout" class="btn btn-danger">Выход</a>
+</div>
+
+<!-- Main Body -->
+<div class="container">
+  <h2 class="text-center mb-5">Ваши трекеры</h2>
+  <div class="tracker-container" id="trackerContainer">
+    <!-- Cards will be dynamically inserted here -->
+  </div>
+</div>
+
+<script>
+  window.onload = () => {
+      loadUserProfilePhoto();
+      loadTrackers();
+  };
+
+function loadTrackers() {
+    fetch('/tracker/session/profile')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('trackerContainer');
+            container.innerHTML = ''; // Очищаем контейнер
+            if (data && Array.isArray(data.trackers)) {
+                data.trackers.forEach(tracker => {
+                    const card = createTrackerCard(tracker);
+                    container.appendChild(card);
+                    updateTrackerUI(tracker); // Обновляем отображение
+                });
+            } else {
+                console.error('Invalid tracker data:', data);
+            }
+        })
+        .catch(error => console.error('Error loading trackers:', error));
+}
+// Создание карточки трекера
+function createTrackerCard(tracker) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = `tracker-${tracker.id}`;
+    card.innerHTML = `
+        <div class="card-header">
+            <h5>${tracker.name}</h5>
+        </div>
+        <div class="card-body">
+            <span class="status-indicator"></span>
+            <div id="tracker-details-${tracker.id}" class="details"></div>
+            <div id="button-container-${tracker.id}" class="mt-3"></div>
+            <div id="message-${tracker.id}" class="status-message"></div>
+        </div>
+        <div class="card-footer">
+            <button class="btn btn-info btn-sm" onclick="deleteTracker('${tracker.id}')
+            ">Удалить</button>
+        </div>
+    `;
+    return card;
+}
+
+function redirectToProfile() {
+    const email = document.getElementById('buttonHeader').innerText; // Получаем текст (email)
+    const url = `/home`; // Создаем URL с параметром email
+    window.location.href = url; // Перенаправляем
+}
+
+
+function deleteTracker(id) {
+    const url = `/tracker/session/delete?id=${id}`;
+
+    fetch(url, { method: 'DELETE' })
+        .then(response => {
+            if (response.ok) {
+                // Успешно удалено
+                const trackerCard = document.getElementById(`tracker-${id}`);
+                if (trackerCard) {
+                    trackerCard.remove(); // Удаляем карточку из интерфейса
+                }
+            } else {
+                throw new Error("Failed to delete tracker.");
+            }
+        })
+        .catch(error => {
+            console.error("Error deleting tracker:", error);
+        });
+}
+
+function loadUserProfilePhoto() {
+    const userId = [[${id}]];  // Замените на реальный ID пользователя (например, через session или JWT)
+   fetch(`/profile/get-profile-photo/${userId}`)
+        .then(response => response.blob())  // Используем .blob() для получения изображения
+        .then(imageBlob => {
+            const userPhoto = document.getElementById("userPhoto");
+            const imageUrl = URL.createObjectURL(imageBlob); // Создаем URL для blob-данных
+            userPhoto.src = imageUrl;  // Обновляем src изображения
+        })
+        .catch(error => console.error("Error loading user photo:", error));
+}
+
+function updateTrackerUI(tracker) {
+    const card = document.getElementById(`tracker-${tracker.id}`);
+    const statusIndicator = card.querySelector('.status-indicator');
+    const buttonContainer = card.querySelector(`#button-container-${tracker.id}`);
+    const detailsContainer = card.querySelector(`#tracker-details-${tracker.id}`);
+
+    // Обновляем статус и кнопки в зависимости от состояния
+    if (tracker.status === 'WAITED') {
+        setStatusIndicator(statusIndicator, 'WAITED');
+        buttonContainer.innerHTML = `<button class="btn btn-success btn-sm" onclick="updateTrackerStatus('${tracker.id}', 'IN_PROGRESS')">Start</button>`;
+        detailsContainer.innerHTML = ''; // Очищаем детали
+    } else if (tracker.status === 'IN_PROGRESS') {
+        setStatusIndicator(statusIndicator, 'IN_PROGRESS');
+        buttonContainer.innerHTML = `<button class="btn btn-danger btn-sm" onclick="updateTrackerStatus('${tracker.id}', 'COMPLETED')">Finish</button>`;
+        detailsContainer.innerHTML = ''; // Очищаем детали
+    } else if (tracker.status === 'COMPLETED') {
+        setStatusIndicator(statusIndicator, 'COMPLETED');
+        fetchTrackerDetails(tracker.id, detailsContainer);
+        buttonContainer.innerHTML = ''; // Убираем кнопки
+    }
+}
+
+function setStatusIndicator(indicator, status) {
+    indicator.className = 'status-indicator';
+    switch (status) {
+        case 'WAITED':
+            indicator.textContent = 'Ожидает начало';
+            indicator.classList.add('status-waiting');
+            break;
+        case 'IN_PROGRESS':
+            indicator.textContent = 'В работе';
+            indicator.classList.add('status-in-progress');
+            break;
+        case 'COMPLETED':
+            indicator.textContent = 'Выполнено';
+            indicator.classList.add('status-completed');
+            break;
+        default:
+            indicator.textContent = 'Unknown status';
+    }
+}
+function updateTrackerStatus(id, newStatus) {
+    fetch(`/tracker/session/status?id=${id}&status=${newStatus}`, { method: 'GET' })
+        .then(response => {
+            if (response.ok) {
+                // После успешного ответа обновляем интерфейс для конкретного трекера
+                return fetch(`/tracker/session/find?id=${id}`); // Загружаем обновлённые данные трекера
+            } else {
+                throw new Error('Failed to update tracker status.');
+            }
+        })
+        .then(response => response.json())
+        .then(tracker => {
+            updateTrackerUI(tracker); // Обновляем UI трекера с новыми данными
+        })
+        .catch(error => {
+            console.error('Error updating tracker status:', error);
+            displayMessage(id, 'Failed to update tracker status.', 'red');
+        });
+}
+
+
+function loadSingleTracker(id) {
+    fetch(`/tracker/session/find?id=${id}`)
+        .then(response => response.json())
+        .then(tracker => {
+            updateTrackerUI(tracker); // Обновляем только UI этой карточки
+        })
+        .catch(error => console.error('Error loading tracker:', error));
+}
+function fetchTrackerDetails(id, container) {
+    fetch(`/tracker/session/find?id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            const startTime = new Date(data.start).toLocaleString();
+            const endTime = new Date(data.endTime).toLocaleString();
+            const duration = parseDuration(data.duration);
+            container.innerHTML = `
+                <table class="details-table">
+                    <tr><th>Start Time:</th><td>${startTime}</td></tr>
+                    <tr><th>End Time:</th><td>${endTime}</td></tr>
+                    <tr><th>Duration:</th><td>${duration}</td></tr>
+                    ${data.description ? `<tr><th>Description:</th><td>${data.description}</td></tr>` : ''}
+                </table>
+            `;
+        })
+        .catch(error => console.error('Error fetching tracker details:', error));
+}
+
+function parseDuration(duration) {
+    const match = duration.match(/P(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?/);
+    if (!match) return 'Invalid duration';
+
+    const hours = parseInt(match[1] || 0, 10);
+    const minutes = parseInt(match[2] || 0, 10);
+    const seconds = parseFloat(match[3] || 0);
+    return `${hours}h ${minutes}m ${seconds.toFixed(2)}s`;
+}
+
+function displayMessage(id, message, color) {
+    const messageContainer = document.getElementById(`message-${id}`);
+    messageContainer.textContent = message;
+    messageContainer.style.color = color;
+    setTimeout(() => {
+        messageContainer.textContent = '';
+    }, 5000);
+}
+
+</script>
+<style>
+  #buttonHeader {
+    font-size: 20px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  }
+
+  #buttonHeader:hover {
+    cursor: pointer;
+    transform: scale(1.1) rotate(10deg); /* Увеличение и вращение */
+    border: 3px dotted #3a7999;
+    color: #fff; /* Белый цвет текста */
+    background: #38d9a9; /* Цвет фона при наведении */
+    box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2); /* Тень, чтобы выделить кнопку */
+    transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  #buttonHeader {
+    position: relative;
+  }
+
+  #buttonHeader:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+    z-index: -1;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  #buttonHeader:hover:before {
+    opacity: 1;
+  }
+</style>
 </body>
 </html>

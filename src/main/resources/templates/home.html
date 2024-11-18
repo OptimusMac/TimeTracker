@@ -3,21 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome Page</title>
+  <title>Панель управления</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f7fa;
+    }
+    .header {
+        background-color: #007bff;
+        color: white;
+        padding: 15px 30px;
+    }
+    .header img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+    .header .user-info {
+        display: flex;
+        align-items: center;
+    }
+    .header .user-info h4 {
+        margin-left: 15px;
+        margin-bottom: 0;
+    }
+     .header .actions {
+      display: flex;
+      align-items: center;
+  }
+
+    .container {
+        margin-top: 30px;
+    }
+    .card {
+        margin-bottom: 20px;
+    }
+    .card-header {
+        background-color: #007bff;
+        color: white;
+    }
+    .card-body {
+        background-color: #ffffff;
+    }
+    .btn-custom {
+        background-color: #28a745;
+        color: white;
+        border-radius: 5px;
+    }
+    .btn-custom:hover {
+        background-color: #218838;
+    }
+
+  .btn-warning {
+      margin-right: 20px;  /* Сдвигает кнопку профиля на 20px влево */
+  }
+  </style>
 </head>
 <body>
-<div class="container mt-5">
-  <div class="text-center">
-    <h1>Welcome, <span th:text="${email}">${email}</span>!</h1>
-    <p class="lead">You have successfully logged in to the system.</p>
-    <a href="/logout" class="btn btn-danger">Logout</a>
+<!-- Заголовок -->
+<div class="header d-flex justify-content-between align-items-center">
+  <div class="user-info d-flex align-items-center">
+    <!-- Фото пользователя -->
+    <img id="userPhoto" src="https://via.placeholder.com/50" alt="Фото пользователя">
+    <!-- Email пользователя -->
+    <h4 th:text="${identifier}">Электронная почта пользователя</h4>
+  </div>
+  <div class="actions">
+    <a href="/user/profile" class="btn btn-warning">Перейти в профиль</a> <!-- Перемещенная кнопка -->
+    <a href="/logout" class="btn btn-danger">Выйти</a>
   </div>
 </div>
 
-<!-- Optional: Bootstrap JS for better interaction -->
+<!-- Основное содержимое -->
+<div class="container">
+  <div class="row">
+    <!-- Раздел "Создать трекер" -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Создать трекер</h5>
+        </div>
+        <div class="card-body">
+          <p>Создайте новый трекер для эффективного управления задачами или проектами.</p>
+          <a href="/create-tracker" class="btn btn-custom">Создать новый трекер</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Раздел "Ваши трекеры" -->
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h5>Ваши трекеры</h5>
+        </div>
+        <div class="card-body">
+          <p>Управляйте и просматривайте существующие трекеры.</p>
+          <a th:href="@{/user/{email}/tracks(email=${email})}" class="btn btn-info">Просмотреть трекеры</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Дополнительно: JavaScript для взаимодействия -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+  window.onload = () => {
+     loadUserProfilePhoto();
+ };
+
+ function loadUserProfilePhoto() {
+   const userId = [[${id}]];  // Замените на реальный ID пользователя (например, через session или JWT)
+  fetch(`/profile/get-profile-photo/${userId}`)
+       .then(response => response.blob())  // Используем .blob() для получения изображения
+       .then(imageBlob => {
+           const userPhoto = document.getElementById("userPhoto");
+           const imageUrl = URL.createObjectURL(imageBlob); // Создаем URL для blob-данных
+           userPhoto.src = imageUrl;  // Обновляем src изображения
+       })
+       .catch(error => console.error("Ошибка загрузки фото пользователя:", error));
+  }
+</script>
 </body>
 </html>

@@ -1,8 +1,7 @@
-package ru.optimusmac.TimeTracker.repository;
+package ru.optimusmac.timetracker.repository;
 
-import java.util.Collection;
 import org.springframework.data.jpa.repository.JpaRepository;
-import ru.optimusmac.TimeTracker.model.WorkSession;
+import ru.optimusmac.timetracker.model.WorkSession;
 
 public interface TrackerRepository extends JpaRepository<WorkSession, Long> {
 

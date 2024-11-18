@@ -15,3 +15,15 @@ spring:
     org:
       springframework:
         security: DEBUG
+
+
+
+logging:
+  level:
+    org:
+      springframework:
+        web: DEBUG
+
+  upload-dir: ./images
+image:
+  upload-dir: src/main/resources/static

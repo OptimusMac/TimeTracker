@@ -1,10 +1,9 @@
-package ru.optimusmac.TimeTracker.controllers;
+package ru.optimusmac.timetracker.controllers;
 
 
 import java.util.Collection;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.optimusmac.TimeTracker.model.Role;
-import ru.optimusmac.TimeTracker.service.RoleService;
-import ru.optimusmac.TimeTracker.utils.Validate;
+import ru.optimusmac.timetracker.model.Role;
+import ru.optimusmac.timetracker.service.RoleService;
+import ru.optimusmac.timetracker.utils.Validate;
 
 @RestController
 @RequestMapping("/role")

@@ -1,4 +1,4 @@
-package ru.optimusmac.TimeTracker.model;
+package ru.optimusmac.timetracker.model;
 
 public enum WorkSessionStatus {
   WAITED,

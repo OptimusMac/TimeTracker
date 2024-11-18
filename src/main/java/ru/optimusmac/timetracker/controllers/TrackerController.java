@@ -1,15 +1,30 @@
-package ru.optimusmac.TimeTracker.controllers;
+package ru.optimusmac.timetracker.controllers;
 
 
+import java.lang.ProcessHandle.Info;
 import java.security.Principal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.hibernate.Hibernate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Transient;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,9 +33,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.optimusmac.TimeTracker.model.WorkSession;
-import ru.optimusmac.TimeTracker.model.WorkSessionStatus;
-import ru.optimusmac.TimeTracker.service.TrackerService;
+import ru.optimusmac.timetracker.model.User;
+import ru.optimusmac.timetracker.model.WorkSession;
+import ru.optimusmac.timetracker.model.WorkSessionStatus;
+import ru.optimusmac.timetracker.requests.InfoRequest;
+import ru.optimusmac.timetracker.service.TrackerService;
+import ru.optimusmac.timetracker.service.UserService;
 
 @RestController
 @RequestMapping("/tracker")
@@ -28,19 +46,88 @@ import ru.optimusmac.TimeTracker.service.TrackerService;
 public class TrackerController {
 
   private final TrackerService service;
+  private final UserService userService;
 
   @PostMapping("/session/create")
-  public WorkSession create(@RequestBody WorkSession workSession) {
-    return service.createSession(workSession);
+  public WorkSession create(@RequestBody WorkSession workSession, @AuthenticationPrincipal org.springframework.security.core.userdetails.User user) {
+    User us = userService.findByEmail(user.getUsername());
+
+    workSession = service.createSession(workSession);  // Сохраняем сессию в базе данных
+
+    us.getActiveSessions().add(workSession);
+
+    userService.save(us);
+
+    return workSession;
   }
 
 
-  @GetMapping("/sessions")
+  @GetMapping("/info")
+  public ResponseEntity<InfoRequest> getInfo(
+      @AuthenticationPrincipal org.springframework.security.core.userdetails.User user){
+    if(user == null){
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    }
+    User us = userService.findByEmail(user.getUsername());
+    int completing = task(us, WorkSessionStatus.COMPLETED).size();
+    int activeTasks = task(us, WorkSessionStatus.IN_PROGRESS).size();
+    int totalTasks = us.getActiveSessions().size();
+    Duration duration = Duration.ofNanos(avgTime(us.getActiveSessions()
+        .stream()
+        .map(WorkSession::getDuration)
+        .collect(Collectors.toSet())));
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+    String registrationDate = us.getRegister().format(formatter);
+    String email = us.getEmail();
+    String nickname = us.getNickname();
+
+    InfoRequest infoRequest = new InfoRequest(completing, activeTasks, totalTasks, formatedDuration(duration),
+        registrationDate, email, nickname);
+    return ResponseEntity.ok(infoRequest);
+  }
+
+
+  @Transactional
+
+  private String formatedDuration(Duration duration){
+    long hours = duration.toHours();
+    long minutes = duration.toMinutes() % 60;
+    long seconds = duration.getSeconds() % 60;
+
+   return String.format("%02d ч %02d мин %02d с", hours, minutes, seconds);
+  }
+
+  @Transactional
+  private Collection<WorkSession> task(User user, WorkSessionStatus status){
+    return user.getActiveSessions()
+        .stream()
+        .filter(workSession -> workSession.getStatus() == status)
+        .collect(Collectors.toSet());
+  }
+
+  @Transactional
+  public long avgTime(Collection<Duration> durations) {
+    if (durations == null || durations.isEmpty()) {
+      return 0;
+    }
+    Duration totalDuration = Duration.ZERO;
+
+    for (Duration duration : durations) {
+      if(duration == null)
+        continue;
+      totalDuration = totalDuration.plus(duration);
+    }
+    return totalDuration.toNanos() / durations.size();
+  }
+
+
+  @GetMapping("/sessions/admin/all")
   public Collection<WorkSession> findAll() {
     return service.findAll();
   }
 
-  @GetMapping("/session/find")
+  @GetMapping("/session/admin/find")
   public WorkSession getSession(@RequestParam(required = false) Long id,
       @RequestParam(required = false) String name) {
     if (id != null) {
@@ -51,6 +138,73 @@ public class TrackerController {
       throw new IllegalArgumentException("Either id or name must be provided");
     }
   }
+
+  @GetMapping("/session/profile")
+  public Map<String, Object> getProfile(@AuthenticationPrincipal org.springframework.security.core.userdetails.User user) {
+    User us = userService.findByEmail(user.getUsername());
+    Collection<WorkSession> activeSessions = us.getActiveSessions();
+    Map<String, Object> response = new HashMap<>();
+    response.put("trackers", activeSessions);
+    return response;
+  }
+
+  @GetMapping("session/find")
+  public ResponseEntity<WorkSession> findSession(@RequestParam Long id,
+      @AuthenticationPrincipal org.springframework.security.core.userdetails.User user) {
+    User us = userService.findByEmail(user.getUsername());
+    WorkSession session =
+        us.getActiveSessions()
+            .stream()
+            .filter(s -> Objects.equals(s.getId(), id))
+            .findFirst()
+            .orElse(null);
+
+    if (session == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    }
+    return ResponseEntity.ok(session);
+  }
+
+
+
+  @GetMapping("/session/action")
+  public ResponseEntity<Boolean> checkStage(@RequestParam Long id,
+      @RequestParam String stage,
+      @AuthenticationPrincipal org.springframework.security.core.userdetails.User user){
+
+    User us = userService.findByEmail(user.getUsername());
+
+    WorkSession workSession =
+        us.getActiveSessions()
+            .stream()
+            .filter(session -> Objects.equals(session.getId(), id))
+            .findFirst()
+            .orElse(null);
+
+    if(workSession == null){
+      return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
+    }
+
+    return new ResponseEntity<>(workSession.getStatus().name().equals(stage), HttpStatus.ACCEPTED);
+  }
+
+  @DeleteMapping("/session/delete")
+  @Transactional
+  public ResponseEntity<?> safeDelete(@RequestParam Long id,
+      @AuthenticationPrincipal org.springframework.security.core.userdetails.User user){
+    User us = userService.findByEmail(user.getUsername());
+    WorkSession workSession =
+        us.getActiveSessions()
+            .stream()
+            .filter(session -> Objects.equals(session.getId(), id))
+            .findFirst()
+            .orElse(null);
+
+    us.getActiveSessions().remove(workSession);
+    userService.save(us);
+    return ResponseEntity.ok().body(us);
+  }
+
 
   @PutMapping("/session/{id}")
   public ResponseEntity<WorkSession> updateSession(@PathVariable Long id,
@@ -67,38 +221,24 @@ public class TrackerController {
 
     return ResponseEntity.ok(savedSession);
   }
-
-  @PostMapping("/session/start")
-  public ResponseEntity<?> setStarted(@RequestParam(required = false) Long id,
-      @RequestParam(required = false) String name) {
+  @GetMapping("/session/status")
+  public ResponseEntity<?> setStatus(@RequestParam(required = false) Long id,
+      @RequestParam(required = false) String name,
+      @RequestParam String status) {
     WorkSession session = getSession(id, name);
 
     if (session == null) {
       return ResponseEntity.status(404).body(null);
     }
 
-    session.setStart(LocalDateTime.now());
-    session.setStatus(WorkSessionStatus.IN_PROGRESS);
-    return updateSession(session.getId(), session);
-  }
-
-  @PostMapping("/session/end")
-  public ResponseEntity<?> setEnd(@RequestParam(required = false) Long id,
-      @RequestParam(required = false) String name) {
-    WorkSession session = getSession(id, name);
-
-    if (session == null) {
-      return ResponseEntity.status(404).body(null);
+    if(session.getStatus() == WorkSessionStatus.IN_PROGRESS) {
+      session.setEndTime(LocalDateTime.now());
+      Duration duration = Duration.between(session.getStart(), session.getEndTime());
+      session.setDuration(duration);
+    }else if(session.getStatus() == WorkSessionStatus.WAITED){
+      session.setStart(LocalDateTime.now());
     }
-    if(session.getStatus() != WorkSessionStatus.IN_PROGRESS){
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-          .body(Map.of("status_exception", "Session cannot continue because it is not in progress, current status: " + session.getStatus().name()));
-    }
-
-    session.setEndTime(LocalDateTime.now());
-    Duration duration = Duration.between(session.getStart(), session.getEndTime());
-    session.setDuration(duration);
-    session.setStatus(WorkSessionStatus.COMPLETED);
-    return updateSession(session.getId(), session);
+    session.setStatus(WorkSessionStatus.valueOf(status.toUpperCase(Locale.ROOT)));
+    return ResponseEntity.ok(service.save(session));
   }
 }

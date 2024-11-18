@@ -1,4 +1,4 @@
-package ru.optimusmac.TimeTracker.configs;
+package ru.optimusmac.timetracker.configs;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -10,13 +10,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
-import ru.optimusmac.TimeTracker.model.User;
-import ru.optimusmac.TimeTracker.service.UserService;
+import ru.optimusmac.timetracker.model.User;
+import ru.optimusmac.timetracker.response.AccessDeniedHandler403;
+import ru.optimusmac.timetracker.service.UserService;
 
 @Configuration
 @EnableWebSecurity
@@ -32,14 +31,16 @@ public class SecurityConfig {
         .csrf(AbstractHttpConfigurer::disable)
         .userDetailsService(this::loadUserByUsername)
         .authorizeHttpRequests(authorize -> authorize
-            .requestMatchers("/login", "/register").anonymous()
-            .requestMatchers("/home").authenticated()
-            .requestMatchers("/user/**", "/role/**", "/tracker/**").hasRole("ADMIN")
+            .requestMatchers("/login", "/register").permitAll()
+
+            .requestMatchers("/user/admin/**", "/role/**", "/tracker/session/admin/**").hasRole("ADMIN")
+            .requestMatchers("/tracker/session/create", "/tracker/session/end", "/tracker/session/start", "/tracker/session/{id}", "/session/profile", "/session/{id}/action", "/user/profile", "/profile/upload", "/user/change/nick", "/tracker/create-tracker").authenticated()
+            .requestMatchers("/user/{email}/tracks", "/home").authenticated()
+
             .anyRequest().permitAll()
         )
         .formLogin(form -> form
             .loginPage("/login")
-            .failureHandler(authenticationFailureHandler())
             .defaultSuccessUrl("/home", true)
             .permitAll()
         )
@@ -49,6 +50,8 @@ public class SecurityConfig {
             .invalidateHttpSession(true)
             .deleteCookies("JSESSIONID")
         )
+        .exceptionHandling(exc -> exc
+            .accessDeniedHandler(new AccessDeniedHandler403()))
         .httpBasic(withDefaults());
     return http.build();
   }
@@ -69,12 +72,6 @@ public class SecurityConfig {
         user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getName())).toList());
   }
 
-  @Bean
-  public AuthenticationFailureHandler authenticationFailureHandler() {
-    return (request, response, exception) -> {
-      response.sendRedirect("/login?error=true");
-    };
-  }
 
   @Bean
   public BCryptPasswordEncoder passwordEncoder() {

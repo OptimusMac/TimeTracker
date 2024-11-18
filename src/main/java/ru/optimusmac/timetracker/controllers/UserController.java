@@ -1,17 +1,18 @@
-package ru.optimusmac.TimeTracker.controllers;
+package ru.optimusmac.timetracker.controllers;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,17 +22,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.optimusmac.TimeTracker.model.Role;
-import ru.optimusmac.TimeTracker.model.User;
-import ru.optimusmac.TimeTracker.service.RoleService;
-import ru.optimusmac.TimeTracker.service.UserService;
-import ru.optimusmac.TimeTracker.utils.Validate;
-import ru.optimusmac.response.ErrorResponse;
+import org.springframework.web.servlet.view.RedirectView;
+import ru.optimusmac.timetracker.model.Role;
+import ru.optimusmac.timetracker.model.User;
+import ru.optimusmac.timetracker.response.ErrorResponse;
+import ru.optimusmac.timetracker.service.RoleService;
+import ru.optimusmac.timetracker.service.UserService;
+import ru.optimusmac.timetracker.utils.Validate;
 
 @RestController
 @RequestMapping("/user")
 @AllArgsConstructor
-public class UserController{
+public class UserController {
 
 
   public final UserService userService;
@@ -39,28 +41,37 @@ public class UserController{
   private final BCryptPasswordEncoder passwordEncoder;
 
 
-
-  @GetMapping("/all")
+  @GetMapping("/admin/all")
   public Collection<User> findAll() {
     return userService.findAll();
   }
+
 
   @PostMapping("/create")
   public ResponseEntity<?> create(@RequestBody User user) {
     User checkUser = userService.findByEmail(user.getEmail());
     if (checkUser != null) {
-      return ResponseEntity.badRequest().body(new ErrorResponse("Email is already in use.", "email"));
+      return ResponseEntity.badRequest()
+          .body(new ErrorResponse("Email is already in use.", "email"));
 
     }
 
     user.setPassword(passwordEncoder.encode(user.getPassword()));
-
+    user.setRegister(LocalDateTime.now());
     User created = userService.create(user);
     return ResponseEntity.ok(created);
   }
 
+  @PutMapping("/change/nick")
+  public ResponseEntity<?> changeNickname(@RequestParam String nickname,
+      @AuthenticationPrincipal org.springframework.security.core.userdetails.User user){
+    User us = userService.findByEmail(user.getUsername());
+    us.setNickname(nickname);
+    return ResponseEntity.ok().body(userService.save(us));
+  }
 
-  @GetMapping("/find")
+
+  @GetMapping("/admin/find")
   public ResponseEntity<?> find(@RequestParam(required = false) Long id,
       @RequestParam(required = false) String email) {
     Predicate<User> userPredicate = Objects::nonNull;
@@ -80,7 +91,7 @@ public class UserController{
         .ok(user);
   }
 
-  @DeleteMapping("/delete")
+  @DeleteMapping("/admin/delete")
   @Transactional
   public ResponseEntity<?> delete(@RequestParam(required = false) Long id,
       @RequestParam(required = false) String email) {
@@ -93,8 +104,20 @@ public class UserController{
     return ResponseEntity.notFound().build();
   }
 
+  @GetMapping("{email}/tracks")
+  public ResponseEntity<Void> userTrackers(@PathVariable String email, @AuthenticationPrincipal org.springframework.security.core.userdetails.User user) {
+    HttpHeaders headers = new HttpHeaders();
+    if (!email.equals(user.getUsername())) {
+      headers.add("Location", "/err?code=403&message=Access Denied");
+      return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
 
-  @GetMapping("/roles/{email}/find")
+    headers.add("Location", "/my-trackers");
+    return new ResponseEntity<>(headers, HttpStatus.FOUND);
+  }
+
+
+  @GetMapping("/admin/roles/{email}/find")
   public ResponseEntity<?> findRoles(@PathVariable String email) {
     User user = userService.findByEmail(email);
     if (user == null) {
@@ -103,20 +126,22 @@ public class UserController{
     return ResponseEntity.ok(user.getRoles());
   }
 
-  @PutMapping("/roles/{email}/remove")
+  @PutMapping("/admin/roles/{email}/remove")
   public ResponseEntity<?> removeRole(@PathVariable String email,
-      @RequestParam String role, @RequestParam(defaultValue = "true", required = false) Boolean validate){
+      @RequestParam String role,
+      @RequestParam(defaultValue = "true", required = false) Boolean validate) {
     return roleToUser(email, role, false, validate);
 
   }
 
-  @PutMapping("/roles/{email}")
+  @PutMapping("/admin/roles/{email}")
   public ResponseEntity<?> setRole(@PathVariable String email, @RequestParam String role) {
     return roleToUser(email, role, true, true);
   }
 
   @Transactional
-  public ResponseEntity<?> roleToUser(String email, String roleName, boolean give, boolean validate) {
+  public ResponseEntity<?> roleToUser(String email, String roleName, boolean give,
+      boolean validate) {
     User user = userService.findByEmail(email);
     if (user == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -128,9 +153,9 @@ public class UserController{
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
           .body(Map.of("not_found", "role not found!"));
     }
-    if(give) {
+    if (give) {
       user.getRoles().add(role);
-    }else{
+    } else {
       user.getRoles().remove(role);
     }
     user = userService.save(user);

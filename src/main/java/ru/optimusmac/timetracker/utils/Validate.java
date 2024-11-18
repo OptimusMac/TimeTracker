@@ -1,4 +1,4 @@
-package ru.optimusmac.TimeTracker.utils;
+package ru.optimusmac.timetracker.utils;
 
 
 import lombok.experimental.UtilityClass;
