@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${errorCode} + ' - Access Denied'">403 - Доступ запрещен</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body {
+        background: linear-gradient(to bottom, #ffffff, #e9ecef);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        font-family: 'Arial', sans-serif;
+    }
+    .error-container {
+        text-align: center;
+        background: #fff;
+        padding: 3rem;
+        border-radius: 10px;
+        box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2);
+        max-width: 500px;
+        width: 100%;
+    }
+    .error-code {
+        font-size: 140px;
+        font-weight: bold;
+        color: #ff6b6b;
+        margin-bottom: 10px;
+    }
+    .error-message {
+        font-size: 28px;
+        color: #343a40;
+        margin-bottom: 20px;
+    }
+    .error-description {
+        font-size: 18px;
+        color: #6c757d;
+        margin-bottom: 30px;
+    }
+    .btn-home {
+        display: inline-block;
+        background-color: #007bff;
+        color: white;
+        padding: 10px 25px;
+        border-radius: 5px;
+        font-size: 18px;
+        text-decoration: none;
+        transition: background-color 0.3s ease;
+    }
+    .btn-home:hover {
+        background-color: #0056b3;
+        text-decoration: none;
+        color: white;
+    }
+  </style>
+</head>
+<body>
+<div class="error-container">
+  <div class="error-code" th:text="${errorCode}">403</div>
+  <div class="error-message" th:text="${errorMessage}">Доступ запрещен</div>
+  <div class="error-description">
+    <p th:text="${errorDescription}">
+      У вас нет прав для доступа к этой странице.
+    </p>
+    <p>Если вы считаете, что это ошибка, обратитесь к администратору.</p>
+  </div>
+  <a href="/home" class="btn-home">Вернуться на главную</a>
+</div>
+</body>
+</html>
