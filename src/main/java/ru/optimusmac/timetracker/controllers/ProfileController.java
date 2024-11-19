@@ -78,8 +78,6 @@ public class ProfileController {
               .body(resource);
         }
       }
-
-      // Если нет изображения, возвращаем изображение по умолчанию
       Path defaultPath = Paths.get(uploadDir + "/images/defaultProfile.png");
       Resource resource = new UrlResource(defaultPath.toUri());
       return ResponseEntity.ok()

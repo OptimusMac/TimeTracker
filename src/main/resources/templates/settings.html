@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Settings</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f7fa;
+        margin: 0;
+    }
+    .header {
+        background-color: #007bff;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .container {
+        max-width: 1200px;
+        margin: 30px auto;
+    }
+    .settings-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .btn-save {
+        background-color: #38d9a9;
+        border: none;
+        color: white;
+        transition: background-color 0.3s ease;
+    }
+    .btn-save:hover {
+        background-color: #32c39a;
+    }
+    .tasks-container {
+        margin-top: 20px;
+    }
+    .tasks-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .task-item {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+    .task-item:last-child {
+        border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h4>Настройки пользователя</h4>
+  <a href="/admin/panel" class="btn btn-light">Назад</a>
+</div>
+
+<div class="container">
+  <!-- User Info Section -->
+  <div class="settings-card">
+    <h5>Информация о пользователе</h5>
+    <p><strong>Имя:</strong> <span id="userName">...</span></p>
+    <p><strong>Email:</strong> <span id="userEmail">...</span></p>
+    <p><strong>Роль:</strong> <span id="userRole">...</span></p>
+    <button class="btn btn-primary" onclick="openRoleModal()">Изменить роль</button>
+    <button class="btn btn-danger" onclick="deleteUser()">Удалить пользователя</button>
+  </div>
+
+  <!-- User Tasks Section -->
+  <div class="settings-card">
+    <h5>Задачи пользователя</h5>
+    <button class="btn btn-secondary mb-3" onclick="viewAllTasks()">Просмотреть все задачи</button>
+    <div class="tasks-container">
+      <ul class="tasks-list" id="tasksList">
+        <!-- Задачи пользователя будут загружены сюда -->
+      </ul>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- Modal for Role Change -->
+<div class="modal fade" id="roleModal" tabindex="-1" role="dialog" aria-labelledby="roleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roleModalLabel">Изменить роль</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <select id="roleSelect" class="form-control"></select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+        <button type="button" class="btn btn-primary" onclick="saveRole()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Create Role -->
+<div class="modal fade" id="createRoleModal" tabindex="-1" role="dialog" aria-labelledby="createRoleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createRoleModalLabel">Создать новую роль</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input id="newRoleInput" type="text" class="form-control" placeholder="Название роли (например, NEW)">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+        <button type="button" class="btn btn-success" onclick="createRole()">Создать роль</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const userId = new URLSearchParams(window.location.search).get('id');
+
+  // Fetch user data
+  function fetchUserData() {
+    fetch(`/tracker/admin/info?id=${userId}`)
+      .then(response => response.json())
+      .then(user => {
+        document.getElementById('userName').textContent = user.nickname || 'Не установлено';
+        document.getElementById('userEmail').textContent = user.email;
+
+        const userRoles = user.roles || [];
+        const formattedRoles = userRoles.map(role => role.replace(/^ROLE_/, ''));
+        document.getElementById('userRole').textContent = formattedRoles.join(', ') || 'Не назначено';
+
+      })
+      .catch(error => {
+        console.error('Ошибка при загрузке данных о пользователе:', error);
+        alert('Не удалось загрузить данные о пользователе.');
+      });
+  }
+
+  // Open Role Modal
+// Open Role Modal
+function openRoleModal() {
+  // Загружаем список всех ролей
+  fetch('/role/findAll')
+    .then(response => response.json())
+    .then(roles => {
+      console.log('Роли, полученные с сервера:', roles);  // Логирование данных
+
+      const roleSelect = document.getElementById('roleSelect');
+      roleSelect.innerHTML = ''; // Очистка текущего списка
+
+      // Заполняем список ролей
+      roles.forEach(role => {
+        console.log('Обрабатываем роль:', role);  // Логирование каждой роли
+        const option = document.createElement('option');
+        if (role.name) {
+          option.value = role.name;  // Используем имя роли
+          option.textContent = role.name.replace(/^ROLE_/, '');  // Убираем префикс 'ROLE_'
+        } else {
+          option.value = role.name;  // Если по какой-то причине name нет
+          option.textContent = role.name;  // Отображаем его как есть
+        }
+        roleSelect.appendChild(option);
+      });
+
+      // Открываем модальное окно
+      $('#roleModal').modal('show');
+    })
+    .catch(error => {
+      console.error('Ошибка при загрузке ролей:', error);
+      alert('Не удалось загрузить список ролей.');
+    });
+}
+
+// Функция для удаления пользователя
+function deleteUser() {
+  // Подтверждение перед удалением
+  if (confirm("Вы уверены, что хотите удалить этого пользователя?")) {
+    // Отправляем запрос на сервер для удаления пользователя
+    fetch(`/user/admin/delete?id=${userId}`, {
+      method: 'DELETE',  // Указываем метод DELETE
+    })
+    .then(response => {
+      if (response.ok) {
+        alert('Пользователь успешно удалён.');
+        window.location.href = '/admin/panel';  // Перенаправляем на панель админа
+      } else {
+        throw new Error('Не удалось удалить пользователя.');
+      }
+    })
+    .catch(error => {
+      console.error('Ошибка при удалении пользователя:', error);
+      alert('Не удалось удалить пользователя.');
+    });
+  }
+}
+
+
+  // Функция для удаления задачи
+function deleteTask(taskId) {
+  // Подтверждение удаления
+  if (confirm("Вы уверены, что хотите удалить эту задачу?")) {
+    // Отправляем запрос на сервер для удаления задачи
+    fetch(`/tracker/admin/delete?id=${taskId}&userID=${userId}`, {
+      method: 'DELETE',
+    })
+    .then(response => {
+      if (response.ok) {
+        // После успешного удаления заново загружаем задачи
+        viewAllTasks();
+      } else {
+        throw new Error('Не удалось удалить задачу.');
+      }
+    })
+    .catch(error => {
+      console.error('Ошибка при удалении задачи:', error);
+      alert('Не удалось удалить задачу.');
+    });
+  }
+}
+
+
+  // Save new role
+  function saveRole() {
+    const newRole = document.getElementById('roleSelect').selectedOptions[0].textContent;
+    fetch(`/user/admin/roles/${userId}?role=${newRole}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' }
+    })
+      .then(response => {
+        if (response.ok) {
+          $('#roleModal').modal('hide');
+          document.getElementById('userRole').textContent = newRole;
+          alert('Роль успешно обновлена!');
+        } else {
+          throw new Error('Ошибка изменения роли.');
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Не удалось изменить роль.');
+      });
+  }
+
+function viewAllTasks() {
+  const tasksList = document.getElementById('tasksList');
+  tasksList.innerHTML = ''; // Очистка текущего списка задач (если они были загружены ранее)
+
+  fetch(`/tracker/session?id=${userId}`)
+    .then(response => response.json())
+    .then(tasks => {
+      if (tasks.length > 0) {
+        tasks.forEach(task => {
+          // Преобразование продолжительности
+          const durationFormatted = formatDuration(task.duration);
+
+          // Формирование задачи с улучшенным оформлением
+          tasksList.innerHTML += `
+            <li class="task-item card mb-3">
+              <div class="card-body">
+                <h5 class="card-title">${task.name}</h5>
+                <p class="card-text"><strong>Статус:</strong> ${task.status}</p>
+                <p class="card-text"><strong>Продолжительность:</strong> ${durationFormatted}</p>
+                <p class="card-text"><strong>Описание:</strong> ${task.description || 'Без описания'}</p>
+               <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')">
+                  <i class="fas fa-trash-alt"></i> Удалить
+                </button>
+
+              </div>
+            </li>`;
+        });
+      } else {
+        tasksList.innerHTML = '<li class="task-item">Задачи не найдены.</li>';
+      }
+    })
+    .catch(error => {
+      console.error('Ошибка при загрузке задач:', error);
+      alert('Не удалось загрузить задачи.');
+    });
+}
+
+// Функция для форматирования продолжительности в более читаемый вид
+function formatDuration(duration) {
+  const match = duration.match(/PT(\d+\.?\d*)S/);
+  if (match) {
+    const totalSeconds = parseFloat(match[1]);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return `${minutes} мин ${seconds} сек`;
+  }
+  return duration;
+}
+
+
+// Функция для форматирования продолжительности в более читаемый вид
+function formatDuration(duration) {
+  const match = duration.match(/PT(\d+\.?\d*)S/);
+  if (match) {
+    const totalSeconds = parseFloat(match[1]);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return `${minutes} мин ${seconds} сек`;
+  }
+  return duration;
+}
+
+  // Open Create Role Modal
+  function openCreateRoleModal() {
+    $('#createRoleModal').modal('show');
+  }
+
+  // Create new role
+  function createRole() {
+    const newRole = document.getElementById('newRoleInput').value;
+    fetch(`/role/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newRole })
+    })
+      .then(response => {
+        if (response.ok) {
+          alert('Роль успешно создана!');
+          $('#createRoleModal').modal('hide');
+        } else {
+          throw new Error('Ошибка при создании роли.');
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Не удалось создать роль.');
+      });
+  }
+
+  // Initial call to fetch user data
+  fetchUserData();
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -33,7 +33,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers("/login", "/register").permitAll()
 
-            .requestMatchers("/user/admin/**", "/role/**", "/tracker/session/admin/**").hasRole("ADMIN")
+            .requestMatchers("/user/admin/**", "/role/**", "/tracker/session/admin/**", "/tracker/admin/info", "admin/panel").hasRole("ADMIN")
             .requestMatchers("/tracker/session/create", "/tracker/session/end", "/tracker/session/start", "/tracker/session/{id}", "/session/profile", "/session/{id}/action", "/user/profile", "/profile/upload", "/user/change/nick", "/tracker/create-tracker").authenticated()
             .requestMatchers("/user/{email}/tracks", "/home").authenticated()
 

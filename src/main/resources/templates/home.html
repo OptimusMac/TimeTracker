@@ -55,6 +55,9 @@
         background-color: #218838;
     }
 
+    .actions a {
+       margin: 0 10px; /* Добавляет отступы между кнопками */
+      }
   .btn-warning {
       margin-right: 20px;  /* Сдвигает кнопку профиля на 20px влево */
   }
@@ -69,10 +72,13 @@
     <!-- Email пользователя -->
     <h4 th:text="${identifier}">Электронная почта пользователя</h4>
   </div>
-  <div class="actions">
+  <div class="actions d-flex justify-content-between">
     <a href="/user/profile" class="btn btn-warning">Перейти в профиль</a> <!-- Перемещенная кнопка -->
+    <a th:if="${admin}" href="/admin/panel" class="btn btn-info">Админ панель</a>
     <a href="/logout" class="btn btn-danger">Выйти</a>
+
   </div>
+
 </div>
 
 <!-- Основное содержимое -->
@@ -117,13 +123,13 @@
  };
 
  function loadUserProfilePhoto() {
-   const userId = [[${id}]];  // Замените на реальный ID пользователя (например, через session или JWT)
+   const userId = [[${id}]];
   fetch(`/profile/get-profile-photo/${userId}`)
-       .then(response => response.blob())  // Используем .blob() для получения изображения
+       .then(response => response.blob())
        .then(imageBlob => {
            const userPhoto = document.getElementById("userPhoto");
-           const imageUrl = URL.createObjectURL(imageBlob); // Создаем URL для blob-данных
-           userPhoto.src = imageUrl;  // Обновляем src изображения
+           const imageUrl = URL.createObjectURL(imageBlob);
+           userPhoto.src = imageUrl;
        })
        .catch(error => console.error("Ошибка загрузки фото пользователя:", error));
   }

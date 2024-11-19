@@ -290,8 +290,8 @@
       document.getElementById("averageTime").textContent = averageTime;
       document.getElementById("registrationDate").textContent = registrationDate;
       document.getElementById("email").textContent = `Почта: ${email}`;
-      document.getElementById("email").insertAdjacentHTML("beforeend", `<p>Никнейм:
-      ${nickname}</p>`);
+      document.getElementById("email").insertAdjacentHTML("beforeend", `<p>Никнейм: ${nickname || 'Не установлено'}</p>`);
+
 
 
       document.getElementById("taskProgress").style.width = `${completionRate}%`;

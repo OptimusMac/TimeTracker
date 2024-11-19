@@ -31,8 +31,8 @@ public class RoleController{
   }
 
   @GetMapping("/findAll")
-  public Collection<Role> findAll(){
-    return roleService.findAll();
+  public ResponseEntity<Collection<Role>> findAll(){
+    return ResponseEntity.ok(roleService.findAll());
   }
 
   @DeleteMapping("/delete")

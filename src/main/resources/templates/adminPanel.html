@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f7fa;
+        margin: 0;
+    }
+    .header {
+        background-color: #007bff;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .container {
+        max-width: 1200px;
+        margin: 30px auto;
+    }
+    .search-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+    .user-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .user-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .error-message {
+        color: red;
+        text-align: center;
+        margin-top: 20px;
+    }
+    .create-role-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h4>Админ Панель</h4>
+  <a href="/logout" class="btn btn-danger">Выйти</a>
+</div>
+
+<div class="container">
+  <h2 class="text-center mb-5">Поиск пользователей</h2>
+  <div class="search-container">
+    <input type="email" id="emailInput" class="form-control mr-2" placeholder="Введите email пользователя" style="max-width: 400px;">
+    <button class="btn btn-primary" onclick="searchUser()">Поиск</button>
+  </div>
+  <div id="userCardContainer" class="mt-4"></div>
+  <div id="errorMessage" class="error-message"></div>
+
+  <!-- Create Role Section -->
+  <div class="create-role-card">
+    <h5>Создать новую роль</h5>
+    <input id="newRoleInput" type="text" class="form-control" placeholder="Название роли (например, NEW)" />
+    <button class="btn btn-success mt-3" onclick="createRole()">Создать роль</button>
+  </div>
+</div>
+
+<script>
+  function searchUser() {
+      const email = document.getElementById('emailInput').value.trim();
+      const userCardContainer = document.getElementById('userCardContainer');
+      const errorMessage = document.getElementById('errorMessage');
+
+      // Очистка предыдущих результатов
+      userCardContainer.innerHTML = '';
+      errorMessage.textContent = '';
+
+      if (!email) {
+          errorMessage.textContent = "Пожалуйста, введите email.";
+          return;
+      }
+
+      fetch(`/user/admin/find?email=${email}`)
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error('Пользователь не найден.');
+              }
+              return response.json();
+          })
+         .then(user => {
+          const userCard = `
+              <div class="user-card" onclick="openUserSettings(${user.id})">
+                  ${user.nickname ? `<h5>Пользователь ${user.nickname}</h5>` : ''}
+                  <p>${user.email}</p>
+              </div>`;
+          userCardContainer.innerHTML = userCard;
+          })
+          .catch(error => {
+              console.error('Ошибка:', error);
+              errorMessage.textContent = "Пользователь не найден или произошла ошибка.";
+          });
+  }
+
+  function openUserSettings(userId) {
+      window.location.href = `/admin/panel/settings?id=${userId}`;
+  }
+
+  // Create new role
+  function createRole() {
+    const newRole = document.getElementById('newRoleInput').value.trim();
+    if (!newRole) {
+        alert('Пожалуйста, введите название роли.');
+        return;
+    }
+
+    fetch(`/role/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newRole })
+    })
+      .then(response => {
+        if (response.ok) {
+          alert('Роль успешно создана!');
+        } else {
+          throw new Error('Ошибка при создании роли.');
+        }
+      })
+      .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Не удалось создать роль.');
+      });
+  }
+</script>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
+</html>

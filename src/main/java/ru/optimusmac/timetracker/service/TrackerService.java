@@ -47,6 +47,10 @@ public class TrackerService {
         .orElse(null);
   }
 
+  public void deleteById(Long id){
+    trackerRepository.deleteById(id);
+  }
+
   public WorkSession save(WorkSession workSession){
     return trackerRepository.save(workSession);
   }

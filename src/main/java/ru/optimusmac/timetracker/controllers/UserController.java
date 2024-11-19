@@ -58,6 +58,7 @@ public class UserController {
 
     user.setPassword(passwordEncoder.encode(user.getPassword()));
     user.setRegister(LocalDateTime.now());
+    user.getRoles().add(roleService.findByName("ROLE_USER"));
     User created = userService.create(user);
     return ResponseEntity.ok(created);
   }
@@ -126,23 +127,23 @@ public class UserController {
     return ResponseEntity.ok(user.getRoles());
   }
 
-  @PutMapping("/admin/roles/{email}/remove")
-  public ResponseEntity<?> removeRole(@PathVariable String email,
+  @PutMapping("/admin/roles/{id}/remove")
+  public ResponseEntity<?> removeRole(@PathVariable Long id,
       @RequestParam String role,
       @RequestParam(defaultValue = "true", required = false) Boolean validate) {
-    return roleToUser(email, role, false, validate);
+    return roleToUser(id, role, false, validate);
 
   }
 
-  @PutMapping("/admin/roles/{email}")
-  public ResponseEntity<?> setRole(@PathVariable String email, @RequestParam String role) {
-    return roleToUser(email, role, true, true);
+  @PutMapping("/admin/roles/{id}")
+  public ResponseEntity<?> setRole(@PathVariable Long id, @RequestParam String role) {
+    return roleToUser(id, role, true, true);
   }
 
   @Transactional
-  public ResponseEntity<?> roleToUser(String email, String roleName, boolean give,
+  public ResponseEntity<?> roleToUser(Long id, String roleName, boolean give,
       boolean validate) {
-    User user = userService.findByEmail(email);
+    User user = userService.findById(id);
     if (user == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
           .body(Map.of("not_found", "user not found!"));

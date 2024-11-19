@@ -53,6 +53,7 @@ public class AuthController {
       model.addAttribute("identifier", name);
       model.addAttribute("email", us.getEmail());
       model.addAttribute("id", us.getId());
+      model.addAttribute("admin", us.getRoles().stream().anyMatch(role -> role.getName().endsWith("ADMIN")));
     }
     return "home";
   }
@@ -127,4 +128,17 @@ public class AuthController {
     };
   }
 
+
+
+  @GetMapping("/admin/panel")
+  public String adminPanel(){
+    return "adminPanel";
+  }
+
+  @GetMapping("admin/panel/settings")
+  public String settingsPanel(@RequestParam Long id, Model model, @AuthenticationPrincipal User user){
+    model.addAttribute("id", id);
+    model.addAttribute("email", user.getUsername());
+    return "settings";
+  }
 }
